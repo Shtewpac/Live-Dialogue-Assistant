@@ -4,7 +4,6 @@ import os
 from google.cloud import speech
 import speech_recognition as sr
 from pydub import AudioSegment
-from queue import Queue
 import threading
 import time
 import librosa

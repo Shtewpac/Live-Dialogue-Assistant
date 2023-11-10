@@ -9,7 +9,7 @@ class TkinterGUI(GUIInterface):
     def __init__(self, gpt_assistance_controller, audio_controller, summary_controller, app_state=None):
         self.gpt_assistance_controller = gpt_assistance_controller
         self.audio_controller = audio_controller
-        self.audio_controller.audio_manager.set_transcript_update_callback(self.set_transcript_callback)
+        self.audio_controller.audio_manager.set_transcript_update_callback(self.update_frames_callback)
         self.summary_controller = summary_controller
         self.app_state = app_state  # Optional application state
 
@@ -65,6 +65,10 @@ class TkinterGUI(GUIInterface):
         # Ensure UI updates happen in the main thread
         self.root.after(0, lambda: self.set_transcript(transcript))
 
+    def update_frames_callback(self, transcript):
+        # Ensure UI updates happen in the main thread
+        self.root.after(0, lambda: self.update_frames(transcript))
+
     def update_transcript(self, transcript):
         self.transcript_text.insert(tk.END, transcript + '\n')
         self.transcript_text.see(tk.END)
@@ -74,11 +78,13 @@ class TkinterGUI(GUIInterface):
         self.transcript_text.insert(tk.END, transcript + '\n')
         self.transcript_text.see(tk.END)
 
-    def update_summary(self, summary):
+    def set_summary(self, summary):
+        self.summary_text.delete(1.0, tk.END)
         self.summary_text.insert(tk.END, summary + '\n')
         self.summary_text.see(tk.END)
 
-    def update_suggestions(self, suggestions):
+    def set_suggestions(self, suggestions):
+        self.suggestion_text.delete(1.0, tk.END)
         self.suggestion_text.insert(tk.END, suggestions + '\n')
         self.suggestion_text.see(tk.END)
 
@@ -109,17 +115,16 @@ class TkinterGUI(GUIInterface):
         # Signal the AudioManager to stop recording
         self.audio_controller.stop_recording()
 
-    def update_frames(self):
+    def update_frames(self, transcript):
         # Update the transcript, conversation summary, and suggestions
 
         # Update the transcript
-        transcript = self.audio_controller.get_transcript()
-        self.update_transcript(transcript)
+        self.set_transcript(transcript)
 
         # Update the conversation summary
         summary = self.summary_controller.generate_summary(transcript)
-        self.update_summary(summary)
+        self.set_summary(summary)
 
         # Update the suggestions
-        suggestions = self.gpt_assistance_controller.generate_suggestions(transcript, summary)
-        self.update_suggestions(suggestions)
+        suggestions = self.gpt_assistance_controller.handle_request_for_assistance(transcript, summary)
+        self.set_suggestions(suggestions)

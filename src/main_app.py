@@ -19,13 +19,11 @@ openai.api_key = OPENAI_API_KEY
 
 def main():
     # Load configuration
-    # Assuming API_KEY and other settings are loaded from config.py
-    gpt_api_key = OPENAI_API_KEY
 
     # Initialize Managers
-    gpt_assistance_manager = GPTAssistanceManager(gpt_api_key)
+    gpt_assistance_manager = GPTAssistanceManager(FAST_LLM)
     audio_manager = AudioManager()  # Initialize with any required parameters
-    live_summary_manager = LiveSummaryManager()
+    live_summary_manager = LiveSummaryManager(FAST_LLM)
 
     # Initialize Controllers with Managers
     gpt_assistance_controller = GPTAssistanceController(gpt_assistance_manager)
