@@ -33,9 +33,9 @@ class AudioManager:
     def start_recording(self):
         self.is_recording = True
         # Start recording loop
-        # self.recording_thread = threading.Thread(target=self._recording_loop, daemon=True)
-        # self.recording_thread.start()
-        threading.Thread(target=self._recording_loop, daemon=True).start()
+        # threading.Thread(target=self._recording_loop, daemon=True).start()
+        self.recording_thread = threading.Thread(target=self._recording_loop, daemon=True)
+        self.recording_thread.start()
         # Start processing loop
         self.combining_thread = threading.Thread(target=self._combining_and_transcribing_loop, daemon=True)
         self.combining_thread.start()
@@ -95,9 +95,11 @@ class AudioManager:
     def stop_recording(self):
         self.is_recording = False
         # Join the recording thread
-        self.recording_thread.join()
+        if self.recording_thread and self.recording_thread.is_alive():
+            self.recording_thread.join()
         # Join the combining thread
-        self.combining_thread.join()
+        if self.combining_thread and self.combining_thread.is_alive():
+            self.combining_thread.join()
         print("Recording stopped.")
 
     def get_transcript(self):

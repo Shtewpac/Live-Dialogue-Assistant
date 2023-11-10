@@ -25,12 +25,12 @@ class GUIInterface(ABC):
         pass
 
     @abstractmethod
-    def update_suggestions(self, suggestions):
+    def set_suggestions(self, suggestions):
         """Update the suggestions display."""
         pass
 
     @abstractmethod
-    def update_summary(self, summary):
+    def set_summary(self, summary):
         """Update the conversation summary display."""
         pass
 
