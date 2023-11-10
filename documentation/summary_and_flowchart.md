@@ -150,33 +150,6 @@ Start
 ```
 
 
-Here's a simplified and condensed description of how the flowchart would look:
-
-```
-Start
-  ├─> Initialize Program
-  │    ├─> Import necessary libraries and modules
-  │    ├─> Set up OpenAI API key and Google Cloud credentials
-  │    └─> Append paths for module accessibility
-  │ 
-  ├─> Launch GUI (tk.Tk())
-  │    └─> Create instance of LiveDialogueApp
-  │         ├─> Initialize GPTAssistanceManager
-  │         │    ├─> [Detailed Process: GPTAssistanceManager]
-  │         │    └─> [User Event: Request for Assistance linked to GPT Assistance details]
-  │         │
-  │         ├─> Initialize AudioManager
-  │         │    ├─> [Sub-process: Start Recording method]
-  │         │    └─> [User Event: Stop Recording linked to Stop Recording details]
-  │         │
-  │         ├─> Initialize LiveSummaryManager
-  │         │    └─> [User Event: Update Summary linked to Update Summary details]
-  │         │
-  │         ├─> Set UIManager elements
-  │         │    ├─> Create UI elements (Transcript Frame, Input Entry, Buttons, etc.)
-  │         │    └─> Start Tkinter main loop (root.mainloop())
-  │
-  End
 
 [Detailed Process: GPTAssistanceManager]
 Start GPTAssistance
@@ -221,37 +194,39 @@ Start Update Summary
 End
 ```
 
-
+Newest Flowchart:
 
 Start
-  ├─> Initialize Program
-  │    ├─> Import necessary libraries and modules
-  │    ├─> Set up OpenAI API key and Google Cloud credentials
-  │    └─> Append paths for module accessibility
+  ├─> Load Configuration
+  │    └─> Load API keys and settings from config.py
   │ 
   ├─> Initialize Managers
-  │    ├─> Initialize GPTAssistanceManager
-  │    ├─> Initialize AudioManager
-  │    └─> Initialize LiveSummaryManager
-  │ 
-  ├─> Initialize Controllers
-  │    ├─> Create GPTAssistanceController (with GPTAssistanceManager)
-  │    ├─> Create AudioController (with AudioManager)
-  │    └─> Create SummaryController (with LiveSummaryManager)
-  │ 
-  ├─> Launch GUI
-  │    ├─> Select GUI Implementation (tk.Tk(), PyQt, etc.)
-  │    ├─> Create instance of GUI with references to Controllers
-  │    └─> Start GUI main loop
-  │ 
-  ├─> User Interactions
-  │    ├─> Start/Stop Recording (via AudioController)
-  │    ├─> Request Assistance (via GPTAssistanceController)
-  │    └─> Generate Summary (via SummaryController)
-  │ 
-  ├─> Backend Processing
-  │    ├─> Record and Transcribe Audio (AudioManager)
-  │    ├─> Generate Suggestions (GPTAssistanceManager)
-  │    └─> Generate Summary (LiveSummaryManager)
+  │    ├─> Initialize GPTAssistanceManager with API key
+  │    ├─> Initialize AudioManager for audio functionalities
+  │    └─> Initialize LiveSummaryManager for summarizing conversations
   │
-  End
+  ├─> Initialize Controllers with Managers
+  │    ├─> Create GPTAssistanceController with GPTAssistanceManager
+  │    ├─> Create AudioController with AudioManager
+  │    └─> Create SummaryController with LiveSummaryManager
+  │
+  ├─> (Optional) Set Dialogue State
+  │    └─> Initialize/Load ApplicationState if state management is needed
+  │ 
+  ├─> Set up GUI (TkinterGUI)
+  │    ├─> Inject Controllers and State (if applicable) into GUI
+  │    ├─> Initialize UI components (transcript, input, buttons, etc.)
+  │    └─> Bind UI events to controller functions
+  │ 
+  ├─> Main Interaction Loop (within GUI)
+  │    ├─> On Audio Record Event
+  │    │    ├─> Start/Stop Recording via AudioController
+  │    │    └─> Update Display with Live Transcription
+  │    ├─> On Assistance Request Event
+  │    │    └─> Invoke GPTAssistanceController to get suggestions
+  │    ├─> On Summary Request Event
+  │    │    └─> Invoke SummaryController to generate summary
+  │    └─> (Handle Errors and Update GUI Accordingly)
+  │
+  └─> Exit Application
+       └─> Close GUI and terminate program
