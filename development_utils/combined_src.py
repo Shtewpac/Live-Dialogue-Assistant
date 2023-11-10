@@ -57,6 +57,11 @@ import os
 from google.cloud import speech
 import speech_recognition as sr
 from pydub import AudioSegment
+from queue import Queue
+import threading
+import time
+import librosa
+import soundfile as sf
 
 class AudioManager:
     def __init__(self):
@@ -69,24 +74,65 @@ class AudioManager:
         self.default_sample_rate = DEFAULT_SAMPLE_RATE
         self.recorded_audio_path = os.path.abspath('data/recorded_audio')
         self.preprocessed_audio_path = os.path.abspath('data/preprocessed_audio')
+        self.combined_audio_path = os.path.join(self.recorded_audio_path, "combined_audio.wav")
+        self.snippets_queue = Queue()  # Queue for storing audio snippets
+        self.combining_thread = None
         self.delete_existing_audio_files()
 
     def set_transcript_update_callback(self, callback):
         self.transcript_update_callback = callback
 
     def start_recording(self):
-        self.is_recording = True  
-        self.start_recording_loop()    
+        self.is_recording = True
+        # Start recording loop
+        threading.Thread(target=self._recording_loop, daemon=True).start()
+        # Start processing loop
+        # threading.Thread(target=self._processing_loop, daemon=True).start()
+        self.combining_thread = threading.Thread(target=self._combining_and_transcribing_loop, daemon=True)
+        self.combining_thread.start()
         print("Recording started.")
-        return "Recording started."
+        # return "Recording started."
     
-    def start_recording_loop(self):
-        threading.Thread(target=self._recording_loop).start()
-
     def _recording_loop(self):
         while self.is_recording:
             audio_data = self._record_snippet()
-            self._process_snippet(audio_data)
+            # self._process_snippet(audio_data)
+            # Store snippet for later processing
+            self._store_snippet(audio_data)
+
+    def _store_snippet(self, audio_data):
+        # Logic to store the audio snippet
+        filename = f"snippet_{self.audio_counter}.wav"
+        filepath = os.path.join(self.recorded_audio_path, filename)
+        self.audio_counter += 1
+        self.saved_audio_files.append(filepath)
+        # Save the audio_data to file
+        with open(filepath, "wb") as f:
+            f.write(audio_data.get_wav_data())
+
+    def _combining_and_transcribing_loop(self):
+        while self.is_recording or self.saved_audio_files:
+            if len(self.saved_audio_files) > 1:
+                self._combine_audio_files()
+                # if combined_audio is not None:
+                if self.combined_audio_path is not None:
+                    # transcription = self.transcribe_with_diarization(combined_audio)
+                    transcript = self.get_transcript(self.combined_audio_path)
+                    print("Transcript: ", transcript)
+                    # Update the transcript in the UI
+                    if transcript is not None:
+                        self.transcript_update_callback(transcript)
+            time.sleep(5)  # Wait some time before combining again
+
+    def _combine_audio_files(self):
+        combined_audio = AudioSegment.empty()
+        print("Combining audio files...")
+        print("Saved audio files: ", self.saved_audio_files)
+        for audio_file in self.saved_audio_files:
+            audio = AudioSegment.from_file(audio_file)
+            combined_audio += audio
+        combined_audio.export(self.combined_audio_path, format="wav")
+    
     
     def is_recording(self):
         # Simulated check for audio recording
@@ -94,28 +140,16 @@ class AudioManager:
 
     def stop_recording(self):
         self.is_recording = False
-        return "Recording stopped."
+        # Join the combining thread
+        self.combining_thread.join()
+        # Join the processing thread
+        self.processing_thread.join()
+        print("Recording stopped.")
 
     def get_transcript(self):
         # Simulated audio transcript
         return "This is a simulated transcript of the recorded audio."
     
-    # def _record_snippet(self):
-    #     with sr.Microphone() as source:
-    #         print("Recording...")
-    #         audio = self.recognizer.listen(source)
-    #         # Recognize the speech in the audio snippet
-    #         try:
-    #             text = self.recognizer.recognize_google(audio)
-    #             print(f"Recognized: {text}")
-    #             # self.update_callback(text)
-    #             if self.transcript_update_callback:
-    #                 self.transcript_update_callback(text)
-    #         except sr.UnknownValueError:
-    #             print("Google Speech Recognition could not understand audio")
-    #         except sr.RequestError as e:
-    #             print(f"Could not request results from Google Speech Recognition service; {e}")
-
     def _record_snippet(self):
         # Logic to record a snippet of audio and return it
         # For example, using speech_recognition's listen() method
@@ -123,12 +157,6 @@ class AudioManager:
             print("Recording...")
             audio = self.recognizer.listen(source)
             return audio
-
-    # def _process_snippet(self, audio_data):
-    #     # Process the snippet for transcription
-    #     transcription = self._transcribe_audio(audio_data)
-    #     if self.transcript_update_callback:
-    #         self.transcript_update_callback(transcription)
 
     def _process_snippet(self, audio_data):
         # Transcribe the audio snippet
@@ -162,9 +190,12 @@ class AudioManager:
             current_speaker = speaker
         return formatted_transcript
     
-    def get_transcript(self):
-        # Simulated audio transcript
-        return "This is a simulated transcript of the recorded audio."
+    def get_transcript(self, audio_file):
+        if audio_file:
+            sentences = self.transcribe_with_diarization(audio_file)
+            if sentences is not None:
+                return self.format_transcript(sentences)
+        return ""
 
     def get_formatted_transcript(self, last_audio_file):
         if last_audio_file:
@@ -172,6 +203,42 @@ class AudioManager:
             if sentences is not None:
                 return self.format_transcript(sentences)
         return ""
+    
+    def preprocess_audio(self, speech_file):
+        # Load the audio file using librosa and resample it to the desired sample rate
+        y_resampled, _ = librosa.load(speech_file, sr=self.default_sample_rate)
+        # Convert the resampled audio back to a wav file
+        converted_audio_path = os.path.join(self.preprocessed_audio_path, f"{os.path.splitext(os.path.basename(speech_file))[0]}_converted.wav")
+        # Save the resampled audio using soundfile
+        sf.write(converted_audio_path, y_resampled, self.default_sample_rate)
+        
+        return converted_audio_path
+    
+    def construct_sentences(self, words_info):
+        sentences = []
+        sentence = []
+        current_speaker = words_info[0].speaker_tag
+
+        for word_info in words_info:
+            # Check if there's a significant time gap or speaker change
+            if sentence and (word_info.speaker_tag != current_speaker or 
+                            word_info.start_time.seconds - sentence[-1]['end_time'].seconds > 1):
+                sentences.append((current_speaker, ' '.join([w['word'] for w in sentence])))
+                sentence = []
+                current_speaker = word_info.speaker_tag
+
+            sentence.append({
+                'word': word_info.word,
+                'start_time': word_info.start_time,
+                'end_time': word_info.end_time,
+                'speaker_tag': word_info.speaker_tag
+            })
+
+        # Add the last sentence
+        if sentence:
+            sentences.append((current_speaker, ' '.join([w['word'] for w in sentence])))
+
+        return sentences
 
     def transcribe_with_diarization(self, speech_file):
         client = speech.SpeechClient()
@@ -220,13 +287,6 @@ class AudioManager:
                 file_path = os.path.join(audio_dir, filename)
                 if os.path.isfile(file_path):
                     os.unlink(file_path)
-
-    def _combine_audio_files(self):
-        combined_audio = AudioSegment.empty()
-        for audio_file in self.saved_audio_files:
-            audio = AudioSegment.from_wav(audio_file)
-            combined_audio += audio
-        return combined_audio
     
 
 
@@ -289,7 +349,7 @@ class TkinterGUI(GUIInterface):
     def __init__(self, gpt_assistance_controller, audio_controller, summary_controller, app_state=None):
         self.gpt_assistance_controller = gpt_assistance_controller
         self.audio_controller = audio_controller
-        self.audio_controller.audio_manager.set_transcript_update_callback(self.update_transcript_callback)
+        self.audio_controller.audio_manager.set_transcript_update_callback(self.set_transcript_callback)
         self.summary_controller = summary_controller
         self.app_state = app_state  # Optional application state
 
@@ -341,7 +401,16 @@ class TkinterGUI(GUIInterface):
         # Ensure UI updates happen in the main thread
         self.root.after(0, lambda: self.update_transcript(transcript))
 
+    def set_transcript_callback(self, transcript):
+        # Ensure UI updates happen in the main thread
+        self.root.after(0, lambda: self.set_transcript(transcript))
+
     def update_transcript(self, transcript):
+        self.transcript_text.insert(tk.END, transcript + '\n')
+        self.transcript_text.see(tk.END)
+
+    def set_transcript(self, transcript):
+        self.transcript_text.delete(1.0, tk.END)
         self.transcript_text.insert(tk.END, transcript + '\n')
         self.transcript_text.see(tk.END)
 
@@ -398,6 +467,9 @@ class TkinterGUI(GUIInterface):
 # Python file for main_app.py
 
 # from application_state import ApplicationState  # if you're using application state
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS_PATH
+
 
 def main():
     # Load configuration

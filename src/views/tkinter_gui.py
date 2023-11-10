@@ -60,6 +60,11 @@ class TkinterGUI(GUIInterface):
         self.transcript_text.insert(tk.END, transcript + '\n')
         self.transcript_text.see(tk.END)
 
+    def set_transcript(self, transcript):
+        self.transcript_text.delete(1.0, tk.END)
+        self.transcript_text.insert(tk.END, transcript + '\n')
+        self.transcript_text.see(tk.END)
+
     def update_summary(self, summary):
         self.summary_text.insert(tk.END, summary + '\n')
         self.summary_text.see(tk.END)
