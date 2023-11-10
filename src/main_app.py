@@ -11,6 +11,12 @@ from managers.audio_manager import AudioManager
 from managers.live_summary_manager import LiveSummaryManager
 # from application_state import ApplicationState  # if you're using application state
 
+import openai
+import os
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS_PATH
+openai.api_key = OPENAI_API_KEY
+
 def main():
     # Load configuration
     # Assuming API_KEY and other settings are loaded from config.py

@@ -1,14 +1,15 @@
 # Python file for tkinter_gui.py
 
-import threading
+from views.gui_interface import GUIInterface
+
 import tkinter as tk
 from tkinter import scrolledtext, messagebox
-from views.gui_interface import GUIInterface
 
 class TkinterGUI(GUIInterface):
     def __init__(self, gpt_assistance_controller, audio_controller, summary_controller, app_state=None):
         self.gpt_assistance_controller = gpt_assistance_controller
         self.audio_controller = audio_controller
+        self.audio_controller.audio_manager.set_transcript_update_callback(self.set_transcript_callback)
         self.summary_controller = summary_controller
         self.app_state = app_state  # Optional application state
 
@@ -56,6 +57,14 @@ class TkinterGUI(GUIInterface):
     def stop(self):
         self.root.destroy()
 
+    def update_transcript_callback(self, transcript):
+        # Ensure UI updates happen in the main thread
+        self.root.after(0, lambda: self.update_transcript(transcript))
+
+    def set_transcript_callback(self, transcript):
+        # Ensure UI updates happen in the main thread
+        self.root.after(0, lambda: self.set_transcript(transcript))
+
     def update_transcript(self, transcript):
         self.transcript_text.insert(tk.END, transcript + '\n')
         self.transcript_text.see(tk.END)
@@ -95,17 +104,6 @@ class TkinterGUI(GUIInterface):
     def start_recording(self):
         # Start recording audio
         self.audio_controller.start_recording()
-        # Start a new thread for processing audio
-        self.processing_thread = threading.Thread(target=self.process_audio)
-        self.processing_thread.start()
-
-    def process_audio(self):
-        while self.audio_controller.is_recording:
-            # Record snippet, save it and process it
-            combined_audio_path = self.audio_controller.combine_audio_files()
-            transcription = self.audio_controller.transcribe_with_diarization(combined_audio_path)
-            # Update the transcript in the UI
-            self.update_transcript(transcription)
 
     def stop_recording(self):
         # Signal the AudioManager to stop recording
