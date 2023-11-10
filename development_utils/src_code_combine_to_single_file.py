@@ -10,10 +10,10 @@ import os
 import datetime
 
 # get the absolute path of the src directory
-src_path = os.path.abspath('G:/Other computers/My Laptop/UMass_CS/CS326_WebProgramming/Live Dialogue Options/LIVE_DIALOGUE_OPTIONS/src')
+src_path = os.path.abspath('G:/My Drive/Coding Projects/2023/Live Dialogue Assistant/src')
 
 # get the absolute path of the misc directory
-misc_path = os.path.abspath('G:/Other computers/My Laptop/UMass_CS/CS326_WebProgramming/Live Dialogue Options/LIVE_DIALOGUE_OPTIONS/misc')
+misc_path = os.path.abspath('G:/My Drive/Coding Projects/2023/Live Dialogue Assistant/development_utils')
 
 # get the current date and time
 now = datetime.datetime.now()

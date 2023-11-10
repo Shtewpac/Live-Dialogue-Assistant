@@ -220,3 +220,38 @@ Start Update Summary
   │
 End
 ```
+
+
+
+Start
+  ├─> Initialize Program
+  │    ├─> Import necessary libraries and modules
+  │    ├─> Set up OpenAI API key and Google Cloud credentials
+  │    └─> Append paths for module accessibility
+  │ 
+  ├─> Initialize Managers
+  │    ├─> Initialize GPTAssistanceManager
+  │    ├─> Initialize AudioManager
+  │    └─> Initialize LiveSummaryManager
+  │ 
+  ├─> Initialize Controllers
+  │    ├─> Create GPTAssistanceController (with GPTAssistanceManager)
+  │    ├─> Create AudioController (with AudioManager)
+  │    └─> Create SummaryController (with LiveSummaryManager)
+  │ 
+  ├─> Launch GUI
+  │    ├─> Select GUI Implementation (tk.Tk(), PyQt, etc.)
+  │    ├─> Create instance of GUI with references to Controllers
+  │    └─> Start GUI main loop
+  │ 
+  ├─> User Interactions
+  │    ├─> Start/Stop Recording (via AudioController)
+  │    ├─> Request Assistance (via GPTAssistanceController)
+  │    └─> Generate Summary (via SummaryController)
+  │ 
+  ├─> Backend Processing
+  │    ├─> Record and Transcribe Audio (AudioManager)
+  │    ├─> Generate Suggestions (GPTAssistanceManager)
+  │    └─> Generate Summary (LiveSummaryManager)
+  │
+  End
