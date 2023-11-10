@@ -17,3 +17,5 @@ class AudioController:
     def get_transcript(self):
         return self.audio_manager.get_transcript()
     
+    def _combine_audio_files(self):
+        return self.audio_manager._combine_audio_files()
