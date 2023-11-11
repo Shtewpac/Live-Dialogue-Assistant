@@ -25,6 +25,7 @@ class AudioManager:
         self.combined_audio_path = os.path.join(self.recorded_audio_path, "combined_audio.wav")
         self.recording_thread = None
         self.combining_thread = None
+        self.new_snippet_event = threading.Event()
         self.delete_existing_audio_files()
 
     def set_transcript_update_callback(self, callback):
@@ -33,26 +34,41 @@ class AudioManager:
     def start_recording(self):
         self.is_recording = True
         # Start recording loop
-        # threading.Thread(target=self._recording_loop, daemon=True).start()
-        self.recording_thread = threading.Thread(target=self._recording_loop, daemon=True)
-        self.recording_thread.start()
+        threading.Thread(target=self._recording_loop, daemon=True).start()
+        # self.recording_thread = threading.Thread(target=self._recording_loop, daemon=True)
+        # self.recording_thread.start()
         # Start processing loop
         self.combining_thread = threading.Thread(target=self._combining_and_transcribing_loop, daemon=True)
         self.combining_thread.start()
         print("Recording started.")
         # return "Recording started."
     
+    # def _recording_loop(self):
+    #     while self.is_recording:
+    #         audio_data = self._record_snippet()
+    #         self._process_snippet(audio_data)
+    #         # if audio data cannot be understood
+    #         if self._process_snippet(audio_data):
+    #             print("Snippet processed.")
+    #             # Store snippet for later processing
+    #             self._store_snippet(audio_data)
+    #         else:
+    #             print("Snippet could not be processed.")
+
     def _recording_loop(self):
-        while self.is_recording:
-            audio_data = self._record_snippet()
-            self._process_snippet(audio_data)
-            # if audio data cannot be understood
-            if self._process_snippet(audio_data):
-                print("Snippet processed.")
-                # Store snippet for later processing
-                self._store_snippet(audio_data)
-            else:
-                print("Snippet could not be processed.")
+        try:
+            while self.is_recording:
+                audio_data = self._record_snippet()
+                if audio_data:
+                    processed = self._process_snippet(audio_data)
+                    if processed:
+                        print("Snippet processed.")
+                        self._store_snippet(audio_data)
+                    else:
+                        print("Snippet could not be processed.")
+        except Exception as e:
+            print(f"Exception in recording loop: {e}")
+
             
 
     def _store_snippet(self, audio_data):
@@ -64,19 +80,37 @@ class AudioManager:
         # Save the audio_data to file
         with open(filepath, "wb") as f:
             f.write(audio_data.get_wav_data())
+        
+        # After storing a new snippet:
+        self.new_snippet_event.set()
+
+
+    # def _combining_and_transcribing_loop(self):
+    #     while self.is_recording or self.saved_audio_files:
+    #         if len(self.saved_audio_files) > 1:
+    #             self._combine_audio_files()
+    #             # if combined_audio is not None:
+    #             if self.combined_audio_path is not None:
+    #                 transcript = self.get_transcript(self.combined_audio_path)
+    #                 print("Transcript: ", transcript)
+    #                 # Update the transcript in the UI
+    #                 if transcript is not None:
+    #                     self.transcript_update_callback(transcript)
+    #         time.sleep(5)  # Wait some time before combining again
 
     def _combining_and_transcribing_loop(self):
         while self.is_recording or self.saved_audio_files:
+            # Wait for a new snippet to be created
+            self.new_snippet_event.wait()
+            self.new_snippet_event.clear()
+
             if len(self.saved_audio_files) > 1:
                 self._combine_audio_files()
-                # if combined_audio is not None:
                 if self.combined_audio_path is not None:
                     transcript = self.get_transcript(self.combined_audio_path)
                     print("Transcript: ", transcript)
-                    # Update the transcript in the UI
                     if transcript is not None:
                         self.transcript_update_callback(transcript)
-            time.sleep(5)  # Wait some time before combining again
 
     def _combine_audio_files(self):
         combined_audio = AudioSegment.empty()
@@ -94,13 +128,20 @@ class AudioManager:
 
     def stop_recording(self):
         self.is_recording = False
-        # Join the recording thread
-        if self.recording_thread and self.recording_thread.is_alive():
-            self.recording_thread.join()
+        # # Join the recording thread
+        # if self.recording_thread and self.recording_thread.is_alive():
+        #     self.recording_thread.join()
+
+        # Ensure the combining thread is not waiting indefinitely
+        self.new_snippet_event.set()
+
         # Join the combining thread
         if self.combining_thread and self.combining_thread.is_alive():
             self.combining_thread.join()
+
         print("Recording stopped.")
+        # Combine all threads
+        
 
     def get_transcript(self):
         # Simulated audio transcript
@@ -114,19 +155,33 @@ class AudioManager:
             audio = self.recognizer.listen(source)
             return audio
 
+    # def _process_snippet(self, audio_data):
+    #     # Transcribe the audio snippet
+    #     try:
+    #         transcription = self.recognizer.recognize_google(audio_data)
+    #         print(f"Recognized: {transcription}")
+    #         # if self.transcript_update_callback:
+    #         #     self.transcript_update_callback(transcription)
+    #         return transcription
+    #     except sr.UnknownValueError:
+    #         print("Could not understand audio")
+    #         return False
+    #     except sr.RequestError as e:
+    #         print(f"Request error from Google Speech Recognition service; {e}")
+
     def _process_snippet(self, audio_data):
-        # Transcribe the audio snippet
         try:
             transcription = self.recognizer.recognize_google(audio_data)
             print(f"Recognized: {transcription}")
-            # if self.transcript_update_callback:
-            #     self.transcript_update_callback(transcription)
-            return transcription
+            if self.transcript_update_callback:
+                self.transcript_update_callback(transcription)
+            return True
         except sr.UnknownValueError:
             print("Could not understand audio")
             return False
         except sr.RequestError as e:
             print(f"Request error from Google Speech Recognition service; {e}")
+            return False
 
 
     def format_transcript(self, transcript):
@@ -150,11 +205,15 @@ class AudioManager:
     
     def get_transcript(self, audio_file):
         if audio_file:
-            sentences = self.transcribe_with_diarization(audio_file)
-            if sentences is not None:
-                formatted_transcript = self.format_transcript(sentences)
-                correct_transcript = self.correct_transcript(formatted_transcript)
-                return correct_transcript
+            try:
+                sentences = self.transcribe_with_diarization(audio_file)
+                if sentences is not None:
+                    formatted_transcript = self.format_transcript(sentences)
+                    correct_transcript = self.correct_transcript(formatted_transcript)
+                    return correct_transcript
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return ""
         return ""
     
     def correct_transcript(self, transcript):
