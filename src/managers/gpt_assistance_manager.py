@@ -21,9 +21,9 @@ class GPTAssistanceManager:
         if assistance_level == 0:
             return ''
         elif assistance_level == 1:
-            system_message = 'You will be given the current summary of the conversation and the last 10 lines of dialogue. Your job is to help person A respond to person B. Give them a response that is relevant to the conversation and that will help them continue the conversation.'
+            system_message = 'You will be given the current summary of the conversation and the last 10 lines of dialogue. Your job is to help person A respond to person B. Give them a response that is relevant to the conversation and that will help them continue the conversation. Give your answer in the following format: "Potential response: <response>"'
         elif assistance_level == 2:
-            system_message = 'You will be given the current summary of the conversation and the last 10 lines of dialogue. Your job is to help person A respond to person B. Provide a response in the style of person A that is relevant to the conversation and that will help them continue the conversation.'
+            system_message = 'You will be given the current summary of the conversation and the last 10 lines of dialogue. Your job is to help person A respond to person B. Provide a response in the style of person A that is relevant to the conversation and that will help them continue the conversation. Give your answer in the following format: "Potential response: <response>"'
         else:
             system_message = 'Invalid assistance level'
 

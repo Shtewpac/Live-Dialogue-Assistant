@@ -25,8 +25,11 @@ class TkinterGUI(GUIInterface):
         self.create_summary_frame()
 
     def create_transcript_frame(self):
+        label = tk.Label(self.root, text="Conversation Transcript", font=("Arial", 14))
+        label.pack(pady=(10, 0))
         self.transcript_text = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, height=10)
-        self.transcript_text.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+        self.transcript_text.pack(pady=(0, 10), padx=10, fill=tk.BOTH, expand=True)
+
 
     def create_input_entry(self):
         self.input_entry = tk.Entry(self.root, width=40)
@@ -39,14 +42,19 @@ class TkinterGUI(GUIInterface):
         tk.Button(self.root, text="Start Recording", command=self.start_recording).pack()
         tk.Button(self.root, text="Stop Recording", command=self.stop_recording).pack()
 
-    def create_suggestion_frame(self):
-        self.suggestion_text = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, height=5)
-        self.suggestion_text.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
-
     def create_summary_frame(self):
+        label = tk.Label(self.root, text="Conversation Summary", font=("Arial", 14))
+        label.pack(pady=(10, 0))
         self.summary_text = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, height=5)
-        self.summary_text.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+        self.summary_text.pack(pady=(0, 10), padx=10, fill=tk.BOTH, expand=True)
 
+    def create_suggestion_frame(self):
+        label = tk.Label(self.root, text="Dialogue Suggestions", font=("Arial", 14))
+        label.pack(pady=(10, 0))
+        self.suggestion_text = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, height=5)
+        self.suggestion_text.pack(pady=(0, 10), padx=10, fill=tk.BOTH, expand=True)
+
+    
     # Implement the abstract methods
     def initialize(self, *args, **kwargs):
         pass

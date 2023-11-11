@@ -30,6 +30,7 @@ class AudioManager:
         self.delete_existing_audio_files()
 
     def set_transcript_update_callback(self, callback):
+        print("Transcript update callback triggered")
         self.transcript_update_callback = callback
 
     def start_recording(self):
@@ -46,6 +47,7 @@ class AudioManager:
     def _recording_loop(self):
         try:
             while self.is_recording:
+                print("Recording loop running")
                 audio_data = self._record_snippet()
                 if audio_data:
                     processed = self._process_snippet(audio_data)
@@ -73,6 +75,7 @@ class AudioManager:
 
     def _combining_and_transcribing_loop(self):
         while True:
+            print("Combining and transcribing loop running")
             # Wait for a new snippet or a stop signal
             self.new_snippet_event.wait()
             self.new_snippet_event.clear()
@@ -88,9 +91,9 @@ class AudioManager:
                         self.transcript_update_callback(transcript)
 
     def _combine_audio_files(self):
-        combined_audio = AudioSegment.empty()
         print("Combining audio files...")
-        print("Saved audio files: ", self.saved_audio_files)
+        combined_audio = AudioSegment.empty()
+        # print("Saved audio files: ", self.saved_audio_files)
         for audio_file in self.saved_audio_files:
             audio = AudioSegment.from_file(audio_file)
             combined_audio += audio
@@ -125,7 +128,7 @@ class AudioManager:
     def _process_snippet(self, audio_data):
         try:
             transcription = self.recognizer.recognize_google(audio_data)
-            print(f"Recognized: {transcription}")
+            print(f"\nRECOGNIZED: {transcription}")
             # Add the transcription to the alternate transcript
             self.alternate_transcript += transcription + "\n"
             if self.transcript_update_callback:
@@ -165,8 +168,8 @@ class AudioManager:
                 if sentences is not None:
                     formatted_transcript = self.format_transcript(sentences)
                     # correct_transcript = self.correct_transcript(formatted_transcript)
-                    print("\nAlternate transcript: ", self.alternate_transcript)
-                    print("\nFormatted transcript: ", formatted_transcript)
+                    # print("\nAlternate transcript: ", self.alternate_transcript)
+                    # print("\nFormatted transcript: ", formatted_transcript)
 
                     correct_transcript = self.correct_transcript_compare(formatted_transcript, self.alternate_transcript)
                     # correct_transcript = formatted_transcript
@@ -299,7 +302,7 @@ class AudioManager:
         words_info = result.alternatives[0].words if result.alternatives else []
 
         sentences = self.construct_sentences(words_info)
-        print("Sentences: ", sentences)
+        # print("Sentences: ", sentences)
         
         return sentences
     

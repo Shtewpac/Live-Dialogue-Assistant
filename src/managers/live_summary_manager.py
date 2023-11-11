@@ -29,16 +29,16 @@ class LiveSummaryManager:
 
     def generate_summary_messages(self, last_10_lines):
         """Determine the messages to send to the model for summarization."""
-        total_lines = len(self.live_transcript)
+        total_lines = len(self.rolling_summary.splitlines())
 
         if total_lines > 10:
             return [
-                {"role": "system", "content": "You will be given the current summary of the conversation and the last 10 lines of dialogue. Your job is to update the current summary with any relevant information from the last 10 lines."},
+                {"role": "system", "content": "You will be given the current summary of the conversation and the last 10 lines of dialogue. Your job is to update the current summary with any relevant information from the last 10 lines. Give your answer in the following format: 'Summary: <summary>'"},
                 {"role": "user", "content": f"Summary:\n{self.rolling_summary}\n\nLast 10 Lines of Transcript:\n{last_10_lines}"}
             ]
         else:
             return [
-                {"role": "system", "content": f"You are going to be given a transcribed conversation from two people. Your job is to summarize the conversation. Refer to the two people as {SPEAKER_A} and {SPEAKER_B} in the summary."},
+                {"role": "system", "content": f"You are going to be given a transcribed conversation from two people. Your job is to summarize the conversation. Refer to the two people as {SPEAKER_A} and {SPEAKER_B} in the summary. Give your answer in the following format: 'Summary: <summary>'"},
                 {"role": "user", "content": f"Transcript:\n{self.live_transcript}"}
             ]
 
@@ -47,7 +47,7 @@ class LiveSummaryManager:
         """Use the model to generate a summary based on the transcript."""
         last_10_lines = self.get_last_10_lines()
         messages = self.generate_summary_messages(last_10_lines)
-        print("\nMessages:", messages, "\n")
+        # print("\nMessages:", messages, "\n")
         
         try:
             response = openai.ChatCompletion.create(
@@ -58,6 +58,8 @@ class LiveSummaryManager:
             
             # Update the rolling summary
             self.rolling_summary = response.choices[0].message["content"].strip()
+            # Strip the 'Summary: ' prefix from the summary
+            self.rolling_summary = self.rolling_summary.replace("Summary:", "")
         
         except Exception as e:
             print("Error:", e)
