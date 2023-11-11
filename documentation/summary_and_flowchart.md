@@ -230,3 +230,63 @@ Start
   │
   └─> Exit Application
        └─> Close GUI and terminate program
+
+
+////
+
+Start AudioManager Initialization
+├─> Set up directories and initial conditions
+│   ├─> Delete existing audio files
+│   ├─> Initialize recording and combining threads and parameters
+└─> End of Initialization
+
+Start Recording Process
+├─> Set recording flag to True
+│   ├─> Start recording loop in a new thread
+│   └─> Start combining and transcribing loop in a new thread
+└─> Recording initiated
+
+Recording Loop (concurrent thread)
+├─> While recording is active
+│   ├─> Record snippet of audio
+│   ├─> Process and transcribe audio snippet
+│   └─> Store audio snippet locally
+└─> Loop until stopped
+
+Combining and Transcribing Loop (concurrent thread)
+├─> While True (indefinitely, until stopped)
+│   ├─> Wait for new audio snippet event or stop signal
+│   ├─> Combine stored audio files
+│   ├─> Get combined audio transcript
+│   └─> Call transcription update callback with transcript
+└─> Exit loop upon stopping
+
+Stop Recording Process
+├─> Set recording flag to False
+│   └─> Signal combining and transcribing loop to stop
+└─> Recording stopped
+
+Get Transcript (from combined audio)
+├─> Check if audio file exists
+│   ├─> Perform transcription with diarization
+│   │   ├─> Preprocess audio
+│   │   ├─> Construct sentences from diarization data
+│   │   └─> Format transcript and potentially correct with GPT
+│   └─> Return formatted and corrected transcript
+└─> End
+
+Record Audio Snippet
+├─> Use microphone to capture audio snippet
+└─> Return recorded audio data
+
+Process Audio Snippet
+├─> Attempt to transcribe snippet using speech recognition service
+│   └─> Handle errors or transcription failures
+└─> Return boolean indicating success
+
+Preprocess Audio
+├─> Use librosa to resample audio to default sample rate
+└─> Save preprocessed audio
+
+Clean-up Actions
+└─> Delete existing audio files in designated directories
