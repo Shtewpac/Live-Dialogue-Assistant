@@ -47,7 +47,7 @@ class AudioManager:
     def _recording_loop(self):
         try:
             while self.is_recording:
-                print("Recording loop running")
+                # print("Recording loop running")
                 audio_data = self._record_snippet()
                 if audio_data:
                     processed = self._process_snippet(audio_data)
@@ -75,7 +75,7 @@ class AudioManager:
 
     def _combining_and_transcribing_loop(self):
         while True:
-            print("Combining and transcribing loop running")
+            # print("Combining and transcribing loop running")
             # Wait for a new snippet or a stop signal
             self.new_snippet_event.wait()
             self.new_snippet_event.clear()
@@ -91,7 +91,7 @@ class AudioManager:
                         self.transcript_update_callback(transcript)
 
     def _combine_audio_files(self):
-        print("Combining audio files...")
+        # print("Combining audio files...")
         combined_audio = AudioSegment.empty()
         # print("Saved audio files: ", self.saved_audio_files)
         for audio_file in self.saved_audio_files:
@@ -131,8 +131,8 @@ class AudioManager:
             print(f"\nRECOGNIZED: {transcription}")
             # Add the transcription to the alternate transcript
             self.alternate_transcript += transcription + "\n"
-            if self.transcript_update_callback:
-                self.transcript_update_callback(transcription)
+            # if self.transcript_update_callback:
+            #     self.transcript_update_callback(transcription)
             return True
         except sr.UnknownValueError:
             print("Could not understand audio")
@@ -168,8 +168,8 @@ class AudioManager:
                 if sentences is not None:
                     formatted_transcript = self.format_transcript(sentences)
                     # correct_transcript = self.correct_transcript(formatted_transcript)
-                    # print("\nAlternate transcript: ", self.alternate_transcript)
-                    # print("\nFormatted transcript: ", formatted_transcript)
+                    print("\nAlternate transcript: ", self.alternate_transcript)
+                    print("\nFormatted transcript: ", formatted_transcript)
 
                     correct_transcript = self.correct_transcript_compare(formatted_transcript, self.alternate_transcript)
                     # correct_transcript = formatted_transcript

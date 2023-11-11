@@ -2,6 +2,7 @@
 
 from views.gui_interface import GUIInterface
 
+from config import *
 import tkinter as tk
 from tkinter import scrolledtext, messagebox
 
@@ -29,6 +30,10 @@ class TkinterGUI(GUIInterface):
         label.pack(pady=(10, 0))
         self.transcript_text = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, height=10)
         self.transcript_text.pack(pady=(0, 10), padx=10, fill=tk.BOTH, expand=True)
+
+        # Define tags for coloring
+        self.transcript_text.tag_configure(SPEAKER_A, foreground="blue")
+        self.transcript_text.tag_configure(SPEAKER_B, foreground="red")
 
 
     def create_input_entry(self):
@@ -78,13 +83,29 @@ class TkinterGUI(GUIInterface):
         self.root.after(0, lambda: self.update_frames(transcript))
 
     def update_transcript(self, transcript):
+        # Insert the new transcript
         self.transcript_text.insert(tk.END, transcript + '\n')
         self.transcript_text.see(tk.END)
 
     def set_transcript(self, transcript):
         self.transcript_text.delete(1.0, tk.END)
-        self.transcript_text.insert(tk.END, transcript + '\n')
+        lines = transcript.split('\n')
+        for line in lines:
+            line_end_index = tk.END
+            self.transcript_text.insert(line_end_index, line + '\n')
+            line_start_index = self.transcript_text.index(f"{line_end_index} -1 line linestart")
+            line_end_index = self.transcript_text.index(f"{line_end_index} -1 line lineend")
+            
+            if "Person A" in line:
+                self.transcript_text.tag_add("Person_A", line_start_index, line_end_index)
+            elif "Person B" in line:
+                self.transcript_text.tag_add("Person_B", line_start_index, line_end_index)
         self.transcript_text.see(tk.END)
+
+    # def set_transcript(self, transcript):
+    #     self.transcript_text.delete(1.0, tk.END)
+    #     self.transcript_text.insert(tk.END, transcript + '\n')
+    #     self.transcript_text.see(tk.END)
 
     def set_summary(self, summary):
         self.summary_text.delete(1.0, tk.END)
