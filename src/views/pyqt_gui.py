@@ -234,14 +234,6 @@ class PyQtGUI(QMainWindow):
         # Placeholder for displaying error messages
         pass
 
-    # def start_recording(self):
-    #     # Start recording audio
-    #     self.audio_controller.start_recording()
-
-    # def stop_recording(self):
-    #     # Signal the AudioManager to stop recording
-    #     self.audio_controller.stop_recording()
-
     def start_recording(self):
         print("Start Recording Button Pressed")
         self.command_queue.put('START')
