@@ -26,6 +26,7 @@ class AudioManager:
         self.recording_thread = None
         self.combining_thread = None
         self.new_snippet_event = threading.Event()
+        self.alternate_transcript = ""
         self.delete_existing_audio_files()
 
     def set_transcript_update_callback(self, callback):
@@ -35,26 +36,13 @@ class AudioManager:
         self.is_recording = True
         # Start recording loop
         threading.Thread(target=self._recording_loop, daemon=True).start()
-        # self.recording_thread = threading.Thread(target=self._recording_loop, daemon=True)
-        # self.recording_thread.start()
+
         # Start processing loop
         self.combining_thread = threading.Thread(target=self._combining_and_transcribing_loop, daemon=True)
         self.combining_thread.start()
         print("Recording started.")
         # return "Recording started."
     
-    # def _recording_loop(self):
-    #     while self.is_recording:
-    #         audio_data = self._record_snippet()
-    #         self._process_snippet(audio_data)
-    #         # if audio data cannot be understood
-    #         if self._process_snippet(audio_data):
-    #             print("Snippet processed.")
-    #             # Store snippet for later processing
-    #             self._store_snippet(audio_data)
-    #         else:
-    #             print("Snippet could not be processed.")
-
     def _recording_loop(self):
         try:
             while self.is_recording:
@@ -69,7 +57,6 @@ class AudioManager:
         except Exception as e:
             print(f"Exception in recording loop: {e}")
 
-            
 
     def _store_snippet(self, audio_data):
         # Logic to store the audio snippet
@@ -84,25 +71,13 @@ class AudioManager:
         # After storing a new snippet:
         self.new_snippet_event.set()
 
-
-    # def _combining_and_transcribing_loop(self):
-    #     while self.is_recording or self.saved_audio_files:
-    #         if len(self.saved_audio_files) > 1:
-    #             self._combine_audio_files()
-    #             # if combined_audio is not None:
-    #             if self.combined_audio_path is not None:
-    #                 transcript = self.get_transcript(self.combined_audio_path)
-    #                 print("Transcript: ", transcript)
-    #                 # Update the transcript in the UI
-    #                 if transcript is not None:
-    #                     self.transcript_update_callback(transcript)
-    #         time.sleep(5)  # Wait some time before combining again
-
     def _combining_and_transcribing_loop(self):
-        while self.is_recording or self.saved_audio_files:
-            # Wait for a new snippet to be created
+        while True:
+            # Wait for a new snippet or a stop signal
             self.new_snippet_event.wait()
             self.new_snippet_event.clear()
+            if not self.is_recording and not self.saved_audio_files:
+                break  # Exit the loop if recording is stopped and all files are processed
 
             if len(self.saved_audio_files) > 1:
                 self._combine_audio_files()
@@ -128,19 +103,11 @@ class AudioManager:
 
     def stop_recording(self):
         self.is_recording = False
-        # # Join the recording thread
-        # if self.recording_thread and self.recording_thread.is_alive():
-        #     self.recording_thread.join()
 
         # Ensure the combining thread is not waiting indefinitely
         self.new_snippet_event.set()
 
-        # Join the combining thread
-        if self.combining_thread and self.combining_thread.is_alive():
-            self.combining_thread.join()
-
         print("Recording stopped.")
-        # Combine all threads
         
 
     def get_transcript(self):
@@ -155,24 +122,12 @@ class AudioManager:
             audio = self.recognizer.listen(source)
             return audio
 
-    # def _process_snippet(self, audio_data):
-    #     # Transcribe the audio snippet
-    #     try:
-    #         transcription = self.recognizer.recognize_google(audio_data)
-    #         print(f"Recognized: {transcription}")
-    #         # if self.transcript_update_callback:
-    #         #     self.transcript_update_callback(transcription)
-    #         return transcription
-    #     except sr.UnknownValueError:
-    #         print("Could not understand audio")
-    #         return False
-    #     except sr.RequestError as e:
-    #         print(f"Request error from Google Speech Recognition service; {e}")
-
     def _process_snippet(self, audio_data):
         try:
             transcription = self.recognizer.recognize_google(audio_data)
             print(f"Recognized: {transcription}")
+            # Add the transcription to the alternate transcript
+            self.alternate_transcript += transcription + "\n"
             if self.transcript_update_callback:
                 self.transcript_update_callback(transcription)
             return True
@@ -209,7 +164,12 @@ class AudioManager:
                 sentences = self.transcribe_with_diarization(audio_file)
                 if sentences is not None:
                     formatted_transcript = self.format_transcript(sentences)
-                    correct_transcript = self.correct_transcript(formatted_transcript)
+                    # correct_transcript = self.correct_transcript(formatted_transcript)
+                    print("\nAlternate transcript: ", self.alternate_transcript)
+                    print("\nFormatted transcript: ", formatted_transcript)
+
+                    correct_transcript = self.correct_transcript_compare(formatted_transcript, self.alternate_transcript)
+                    # correct_transcript = formatted_transcript
                     return correct_transcript
             except Exception as e:
                 print(f"An error occurred: {e}")
@@ -233,6 +193,35 @@ class AudioManager:
         )
 
         # Extract and return the suggestions
+        corrected_transcript = response.choices[0].message["content"].strip()
+        # Remove the "Corrected Transcript: " prefix
+        corrected_transcript = corrected_transcript.replace("Corrected Transcript:", "")
+        return corrected_transcript
+    
+    def correct_transcript_compare(self, transcript, alternate_transcript):
+        # Reconstruct the transcript using gpt-3.5-turbo
+        system_message = """
+        You will be given two transcripts of the same conversation that may have discrepancies. 
+        Your task is to compare these two transcripts and produce a single, accurate transcript 
+        that best represents the actual conversation. Consider differences in word choice, 
+        phrasing, and any potential errors in either transcript. Provide the corrected and 
+        unified transcript. Give your answer in this form: 'Corrected Transcript: <your corrected transcript>'
+        """
+        # Construct the message for GPT
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": f"Original Transcript:\n{transcript}\n"},
+            {"role": "user", "content": f"Alternate Transcript:\n{alternate_transcript}\n"}
+        ]
+
+        # Generate suggestions using the selected model
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-16k",
+            messages=messages,
+            max_tokens=4000  # Adjust the max tokens as needed
+        )
+
+        # Extract and return the corrected transcript
         corrected_transcript = response.choices[0].message["content"].strip()
         # Remove the "Corrected Transcript: " prefix
         corrected_transcript = corrected_transcript.replace("Corrected Transcript:", "")
