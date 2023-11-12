@@ -43,6 +43,11 @@ class PyQtGUI(QMainWindow):
         label_font = QFont('Arial', 16)  # Adjust the size as needed
         
         layout = QVBoxLayout()
+        
+        # Initialize recording state and timer for blinking effect
+        self.is_recording = False
+        self.blink_timer = QTimer(self)
+        self.blink_timer.timeout.connect(self.blink_recording_button)
 
         # Create and configure the transcript label
         transcript_label = QLabel("Conversation Transcript")
