@@ -107,10 +107,28 @@ class PyQtGUI(QMainWindow):
     def start_recording(self):
         print("Start Recording Button Pressed")
         self.command_queue.put('START')
+        self.is_recording = True
+        self.start_button.setText("Recording")
+        self.start_button.setEnabled(False)  # Disable the start button
+        self.blink_timer.start(500)  # Blink every 500 milliseconds
 
     def stop_recording(self):
         print("Stop Recording Button Pressed")
         self.command_queue.put('STOP')
+        self.is_recording = False
+        self.start_button.setText("Start Recording")
+        self.start_button.setEnabled(True)  # Re-enable the start button
+        self.start_button.setStyleSheet("")  # Reset button style
+        self.blink_timer.stop()
+        
+    def blink_recording_button(self):
+        if self.is_recording:
+            current_color = self.start_button.styleSheet()
+            new_color = "background-color: red;" if current_color == "" else ""
+            self.start_button.setStyleSheet(new_color)
+        else:
+            self.blink_timer.stop()  # Stop blinking when not recording
+
 
     def check_for_updates(self):
         # Check the result queue for updates from the audio manager
