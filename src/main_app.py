@@ -21,9 +21,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication  # Add this import for PyQt
 
-
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS_PATH
-openai.api_key = OPENAI_API_KEY
+openai.api_key = os.environ["OPENAI_KEY"]
 
 # def main():
 #     # Load configuration

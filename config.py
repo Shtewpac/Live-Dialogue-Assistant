@@ -1,7 +1,3 @@
-# OPEN AI VARIABLES
-OPENAI_API_KEY = "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"
-GOOGLE_APPLICATION_CREDENTIALS_PATH = "C:\\Users\\wkraf\\AppData\\Roaming\\gcloud\\black-agility-369318-67748677b97e.json"
-
 ## GPT ASSISTANCE VARIABLES
 SMART_LLM = "gpt-4"
 FAST_LLM = "gpt-3.5-turbo"

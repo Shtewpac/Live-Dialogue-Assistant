@@ -42,7 +42,6 @@ class AudioManager:
     def initialize(self):
         # Initialize threads, locks, or other non-picklable objects here
         self.new_snippet_event = threading.Event()
-        # ... rest of the initialization for non-picklable objects
 
     def set_transcript_update_callback(self, callback):
         print("Transcript update callback triggered")
