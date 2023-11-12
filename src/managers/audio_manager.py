@@ -9,10 +9,7 @@ import time
 import librosa
 import soundfile as sf
 import openai
-import multiprocessing
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from queue import Empty
 
 from config import *
 
@@ -46,19 +43,26 @@ class AudioManager:
     def set_transcript_update_callback(self, callback):
         print("Transcript update callback triggered")
         self.transcript_update_callback = callback
-
+    
     def run(self):
+        print("Audio manager running...")
         self.initialize()
         while True:
             print("Running")
             command = self.command_queue.get()
             print("Command: ", command)
+
             if command == 'START':
-                self.start_recording()
+                if not self.is_recording:
+                    self.start_recording()
             elif command == 'STOP':
-                self.stop_recording()
-                break
-            self.check_and_process_updates()
+                if self.is_recording:
+                    self.stop_recording()
+
+            # Only call check_and_process_updates if recording is active
+            if self.is_recording:
+                self.check_and_process_updates()
+
 
     def check_and_process_updates(self):
         # This method will be called regularly to check if new audio snippets are available
@@ -78,6 +82,7 @@ class AudioManager:
             self.new_snippet_event.clear()
 
     def start_recording(self):
+        print("Starting recording...")
         self.is_recording = True
 
         # Start recording loop in a new thread
@@ -90,7 +95,18 @@ class AudioManager:
 
     def stop_recording(self):
         self.is_recording = False
-        self.processing_process.terminate()  # Terminate the processing process
+
+        # If using threads, ensure they are properly signaled to stop
+        if hasattr(self, 'recording_thread') and self.recording_thread is not None:
+            print("Waiting for recording thread to finish...")
+            # Wait for the recording thread to finish, if necessary
+            self.recording_thread.join()
+
+        if hasattr(self, 'processing_thread') and self.processing_thread is not None:
+            print("Waiting for processing thread to finish...")
+            # Wait for the processing thread to finish, if necessary
+            self.processing_thread.join()
+
         print("Recording stopped.")
 
     def is_recording(self):
@@ -246,11 +262,13 @@ class AudioManager:
     def correct_transcript_compare(self, transcript, alternate_transcript):
         # Reconstruct the transcript using gpt-3.5-turbo
         system_message = """
-        You will be given two transcripts of the same conversation that may have discrepancies. 
-        Your task is to compare these two transcripts and produce a single, accurate transcript 
-        that best represents the actual conversation. Consider differences in word choice, 
-        phrasing, and any potential errors in either transcript. Provide the corrected and 
-        unified transcript. Give your answer in this form: 'Corrected Transcript: <your corrected transcript>'
+        You will be given two transcripts of the same conversation that may have discrepancies and errors. (Including which speaker is speaking, the number of times things are said, and the exact words used.)
+        Your task is to compare these two transcripts and attempt to produce a single, accurate transcript that best represents what the actual conversation might have been. Consider differences in word choice, phrasing, and any potential errors in either transcript. 
+        Provide the corrected and unified transcript. Give your answer in this form: 
+        'Corrected Transcript:
+        <Speaker X>: <text>
+        <Speaker Y>: <text>
+        ...'
         """
         # Construct the message for GPT
         messages = [
@@ -261,7 +279,8 @@ class AudioManager:
 
         # Generate suggestions using the selected model
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-16k",
+            # model=FAST_LLM,
+            model=SMART_LLM,
             messages=messages,
             max_tokens=4000  # Adjust the max tokens as needed
         )
@@ -270,6 +289,9 @@ class AudioManager:
         corrected_transcript = response.choices[0].message["content"].strip()
         # Remove the "Corrected Transcript: " prefix
         corrected_transcript = corrected_transcript.replace("Corrected Transcript:", "")
+        # Remove the line break at the beginning of the transcript (if it exists)
+        if corrected_transcript.startswith("\n"):
+            corrected_transcript = corrected_transcript[1:]
         return corrected_transcript
 
     def preprocess_audio(self, speech_file):
@@ -320,7 +342,7 @@ class AudioManager:
 
         diarization_config = speech.SpeakerDiarizationConfig(
             enable_speaker_diarization=True,
-            min_speaker_count=1,
+            min_speaker_count=2,
             max_speaker_count=2,
         )
         config = speech.RecognitionConfig(

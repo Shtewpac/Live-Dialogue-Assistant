@@ -1,5 +1,5 @@
 ## GPT ASSISTANCE VARIABLES
-SMART_LLM = "gpt-4"
+SMART_LLM = "gpt-4-1106-preview"
 FAST_LLM = "gpt-3.5-turbo"
 
 ## AUDIO VARIABLES
