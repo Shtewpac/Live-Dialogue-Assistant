@@ -31,7 +31,8 @@ def main():
     result_queue = Queue()
 
     # Initialize Managers
-    gpt_assistance_manager = GPTAssistanceManager(FAST_LLM)
+    gpt_assistance_manager = GPTAssistanceManager(SMART_LLM)
+    gpt_assistance_manager.set_character("a pirate")
     audio_manager = AudioManager(command_queue, result_queue)  # Pass queues as arguments
     live_summary_manager = LiveSummaryManager(FAST_LLM)
 
