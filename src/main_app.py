@@ -19,7 +19,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication  # Add this import for PyQt
 
-openai.api_key = os.environ["OPENAI_KEY"]
+openai.api_key = os.environ["OPENAI_API_KEY"]
 # Print the openai key to make sure it's working
 # print("OPENAI_KEY: " + openai.api_key)
 
